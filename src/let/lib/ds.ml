@@ -1,3 +1,10 @@
+(*
+  Homework 3
+  18 February 2024
+  Student name 1: Pratyush Patel
+  Student name 2: David Amin
+*)
+
 (* This file defines expressed values and environments *)
 
 (* expressed values and environments are defined mutually recursively *)
@@ -11,6 +18,8 @@ type exp_val =
   | TupleVal of exp_val list
   | ListVal of exp_val list
   | TreeVal of exp_val tree
+  | RecordVal of (string*exp_val) list
+  
 type env =
   | EmptyEnv
   | ExtendEnv of string*exp_val*env
@@ -126,3 +135,18 @@ let string_of_env : string ea_result =
   match env with
   | EmptyEnv -> Ok ">>Environment:\nEmpty"
   | _ -> Ok (">>Environment:\n"^ string_of_env' [] env)
+
+(** HELPER FUNCTIONS **)
+let rec record_helper = function
+    | [] -> return ()
+    | (field, _) :: rest ->
+      if List.exists (fun (f, _) -> f = field) rest then
+        error "Record: duplicate fields"
+      else
+        record_helper rest
+
+let proj_helper =
+  fun v ->
+    match v with
+    | RecordVal fs -> return fs
+    | _ -> error "Expected a record"

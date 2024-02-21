@@ -9,8 +9,10 @@ type exp_val =
   | BoolVal of bool
   | PairVal of exp_val*exp_val
   | TupleVal of exp_val list
-  | TreeVal of exp_val tree
   | ListVal of exp_val list
+  | TreeVal of exp_val tree
+  | RecordVal of (string*exp_val) list
+  
 type env =
   | EmptyEnv
   | ExtendEnv of string*exp_val*env
@@ -24,7 +26,7 @@ type 'a ea_result = env -> 'a result
   
 let return : 'a -> 'a ea_result =
   fun v ->
-  fun _env -> 
+  fun _env ->
   Ok v
 
 let error : string -> 'a ea_result = fun s ->
@@ -111,15 +113,11 @@ let pair_of_pairVal : exp_val -> (exp_val*exp_val) ea_result =  function
   | _ -> error "Expected a pair!"
            
 let rec string_of_expval = function
-| NumVal n -> string_of_int n
-| BoolVal b -> string_of_bool b
-| ListVal lst -> "[" ^ String.concat ", " (List.map string_of_expval lst) ^ "]"
-| TreeVal tree -> string_of_tree tree
-
-and string_of_tree = function
-| Empty -> "Empty"
-| Node (v, left, right) ->
-  "Node (" ^ string_of_expval v ^ ", " ^ string_of_tree left ^ ", " ^ string_of_tree right ^ ")"
+  | NumVal n -> "NumVal " ^ string_of_int n
+  | BoolVal b -> "BoolVal " ^ string_of_bool b
+  | PairVal (ev1,ev2) -> "PairVal("^string_of_expval ev1
+                         ^","^ string_of_expval ev2^")"
+  | TupleVal evs -> "TupleVal("^String.concat "," (List.map string_of_expval evs)^")"
 
 let rec string_of_env' ac = function
   | EmptyEnv ->  "["^String.concat ",\n" ac^"]"
@@ -131,21 +129,17 @@ let string_of_env : string ea_result =
   | EmptyEnv -> Ok ">>Environment:\nEmpty"
   | _ -> Ok (">>Environment:\n"^ string_of_env' [] env)
 
+(** HELPER FUNCTIONS **)
+let rec record_helper = function
+    | [] -> return ()
+    | (field, _) :: rest ->
+      if List.exists (fun (f, _) -> f = field) rest then
+        error "Record: duplicate fields"
+      else
+        record_helper rest
 
-(** Binary Tree Helper Functions **)
-
-let empty_tree : unit -> exp_val ea_result =
-  fun () -> return (TreeVal Empty)
-
-let make_node : exp_val -> exp_val -> exp_val -> exp_val ea_result =
-  fun e1 e2 e3 ->
-    match e2, e3 with
-    | TreeVal t1, TreeVal t2 -> return (TreeVal (Node (e1, t1, t2)))
-    | _ -> error "Second and third arguments must be trees"
-
-let is_empty : exp_val -> bool ea_result =
-  fun e ->
-    match e with
-    | TreeVal t -> return (t = Empty)
-    | _ -> error "Argument must be a tree"
-
+let proj_helper =
+  fun v ->
+    match v with
+    | RecordVal fs -> return fs
+    | _ -> error "Expected a record"
