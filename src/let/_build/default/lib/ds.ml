@@ -1,3 +1,10 @@
+(*
+  Homework 3
+  18 February 2024
+  Student name 1: Pratyush Patel
+  Student name 2: David Amin
+*)
+
 (* This file defines expressed values and environments *)
 
 (* expressed values and environments are defined mutually recursively *)

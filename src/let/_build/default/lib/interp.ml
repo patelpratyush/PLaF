@@ -1,3 +1,10 @@
+(*
+  Homework 3
+  18 February 2024
+  Student name 1: Pratyush Patel
+  Student name 2: David Amin
+*)
+
 open Parser_plaf.Ast
 open Parser_plaf.Parser
 open Ds
@@ -62,6 +69,12 @@ let rec eval_expr : expr -> exp_val ea_result =
     eval_expr e >>=
     pair_of_pairVal >>= fun (_,r) ->
     return r
+  | Unpair(id1,id2,e1,e2) ->
+    eval_expr e1 >>=
+    pair_of_pairVal >>= fun(l,r) ->
+    extend_env id1 l >>+
+    extend_env id2 r >>+
+    eval_expr e2
   | Debug(_e) ->
     string_of_env >>= fun str ->
     print_endline str; 
