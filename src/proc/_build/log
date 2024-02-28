@@ -1,0 +1,23 @@
+# dune ut
+# OCAMLPARAM: unset
+# Shared cache: disabled
+# Shared cache location: /Users/pratyush/.cache/dune/db
+# Workspace root: /Users/pratyush/Desktop/PLaF/src/proc
+# Auto-detected concurrency: 8
+# Dune context:
+#  { name = "default"
+#  ; kind = "default"
+#  ; profile = Dev
+#  ; merlin = true
+#  ; fdo_target_exe = None
+#  ; build_dir = In_build_dir "default"
+#  ; installed_env =
+#      map
+#        { "INSIDE_DUNE" :
+#            "/Users/pratyush/Desktop/PLaF/src/proc/_build/default"
+#        ; "OCAML_COLOR" : "always"
+#        ; "OPAMCOLOR" : "always"
+#        }
+#  ; instrument_with = []
+#  }
+$ /Users/pratyush/.opam/default/bin/ocamlc.opt -config > /var/folders/_z/8hyft51d6zg59cjjk37rkd6m0000gn/T/dune_52d86f_output
