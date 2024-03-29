@@ -144,9 +144,3 @@ let rec record_helper = function
         error "Record: duplicate fields"
       else
         record_helper rest
-
-let proj_helper =
-  fun v ->
-    match v with
-    | RecordVal fs -> return fs
-    | _ -> error "Expected a record"

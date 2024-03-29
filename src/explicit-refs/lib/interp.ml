@@ -92,12 +92,40 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
     sequence (List.map eval_expr es) >>= fun l ->
     return (List.hd (List.rev l))
   | Unit -> return UnitVal
+  | IsNumber(e) -> 
+    eval_expr e >>= fun ev ->
+      return @@ BoolVal (match ev with NumVal _ -> true | _ -> false)
+  | IsEqual (e1,e2) -> (* check that evaluation of e1, e2 are NumVals *) 
+    eval_expr e1 >>= fun ev1 ->
+    eval_expr e2 >>= fun ev2 ->
+    return @@ BoolVal (ev1 = ev2)
+  | IsGT (e1, e2) -> (* check that evaluation of e1, e2 are NumVals *) 
+    eval_expr e1 >>= fun ev1 ->
+    eval_expr e2 >>= fun ev2 ->
+    return @@ BoolVal (ev1 > ev2)
+  | IsLT (e1, e2) -> (* check that evaluation of e1, e2 are NumVals *) 
+    eval_expr e1 >>= fun ev1 ->
+    eval_expr e2 >>= fun ev2 ->
+    return @@ BoolVal (ev1 < ev2)
+  | Record(fs) ->
+    sequence (List.map process_field fs) >>= fun evs ->
+    return (RecordVal (addIds fs evs))
+  | Proj(e,id) ->
+    failwith "implement"
+  | SetField (e1, id, e2) ->
+    failwith "implement"
   | Debug(_e) ->
     string_of_env >>= fun str_env ->
     let str_store = Store.string_of_store string_of_expval g_store 
     in (print_endline (str_env^"\n"^str_store);
     error "Reached breakpoint")
   | _ -> failwith ("Not implemented: "^string_of_expr e)
+  and 
+  process_field (_id, (is_mutable,e)) =
+    eval_expr e >>= fun ev ->
+      if is_mutable
+        then return (RefVal (Store.new_ref g_store ev))
+        else return ev
 
 let eval_prog (AProg(_,e)) =
   eval_expr e         
@@ -107,5 +135,10 @@ let interp (s:string) : exp_val result =
   let c = s |> parse |> eval_prog
   in run c
 
-
+(* Interpret an expression read from a file with optional extension .exr
+let interpf (s:string) : exp_val result =
+  let s = String.trim s (* remove leading and trailing spaces *)
+  in let file_name = (* allow rec to be optional *)
+  match String.index_opt s ’.’ with None -> s^".exr" | _ -> s
+  in interp @@ read_file file_name *)
 
