@@ -111,16 +111,26 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
     sequence (List.map process_field fs) >>= fun evs ->
     return (RecordVal (addIds fs evs))
   | Proj(e,id) ->
-    failwith "implement"
-  | SetField (e1, id, e2) ->
-    failwith "implement"
+    eval_expr e >>=
+    fields_of_recordVal >>= fun fs ->
+      (match List.assoc_opt id fs with
+      | None -> error "Field does not exist"
+      | Some ev -> return ev)
+  | SetField(e1,id,e2) ->
+    eval_expr e1 >>=
+    fields_of_recordVal >>= fun fs ->
+    eval_expr e2 >>= fun ev ->
+      (match List.assoc_opt id fs with
+      | None -> error "Field does not exist"
+      | Some(RefVal l) -> Store.set_ref g_store l ev >>= fun _ -> return UnitVal
+      | _ -> error "Field is not mutable")
   | Debug(_e) ->
     string_of_env >>= fun str_env ->
     let str_store = Store.string_of_store string_of_expval g_store 
     in (print_endline (str_env^"\n"^str_store);
     error "Reached breakpoint")
   | _ -> failwith ("Not implemented: "^string_of_expr e)
-  and 
+and 
   process_field (_id, (is_mutable,e)) =
     eval_expr e >>= fun ev ->
       if is_mutable

@@ -153,5 +153,8 @@ let string_of_env : string ea_result =
   | _ -> Ok (">>Environment:\n"^ string_of_env' [] env)
 
 
-let addIds fs evs =
-  List.map (fun (id,ev) -> (id,List.hd evs)) fs
+let rec addIds fs evs =
+  match fs,evs with
+  | [],[] -> []
+  | (id,(is_mutable,_))::t1, v::t2 -> (id,(is_mutable,v)):: addIds t1 t2
+  | _,_ -> failwith "error: lists have different sizes"
