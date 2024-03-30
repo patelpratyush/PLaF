@@ -111,27 +111,28 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
     sequence (List.map process_field fs) >>= fun evs ->
     return (RecordVal (addIds fs evs))
   | Proj(e,id) ->
-    eval_expr e >>= fun record ->
-    let getIds (RefVal l) = Store.deref g_store l
-    in let getIds (RecordVal ids) = ids
-    in let ids = getIds record
-    in return (List.assoc id ids)
-      (* let getIds (RecordVal ids) = ids
-      in return (List.assoc id (getIds record)) *)
-  | SetField(e1,id,e2) -> 
-    eval_expr e1 >>= fun record ->
-    eval_expr e2 >>= fun ev ->
-    let getIds (RecordVal ids) = ids
-    in let ids = getIds record
-    in let new_ids = List.remove_assoc id ids
-    in return (RecordVal ((id,ev)::new_ids))
+    eval_expr e >>= fun ev1 ->
+      fields_of_recordVal ev1 >>= fun r ->
+        (match List.assoc_opt id r with
+        | None -> error "Field doesnt exits"
+        | Some (false, value) -> return value
+        | Some (true, refval) -> int_of_refVal refval >>= fun num -> Store.deref g_store num)
+  | SetField(e1,id,e2) ->
+      eval_expr e1 >>=
+        fields_of_recordVal >>= fun r ->
+        eval_expr e2 >>= fun newValue ->
+          (match List.assoc_opt id r with
+          | None -> error "Field does not exist"
+          | Some (false, _) -> error "Field not mutable"
+          | Some (true, RefVal n) -> Store.set_ref g_store n newValue  >>= fun _ -> return UnitVal
+          | Some (true, _) -> error "Field not a reference")
   | Debug(_e) ->
     string_of_env >>= fun str_env ->
     let str_store = Store.string_of_store string_of_expval g_store 
     in (print_endline (str_env^"\n"^str_store);
     error "Reached breakpoint")
   | _ -> failwith ("Not implemented: "^string_of_expr e)
-  and 
+and 
   process_field (_id, (is_mutable,e)) =
     eval_expr e >>= fun ev ->
       if is_mutable
@@ -146,10 +147,9 @@ let interp (s:string) : exp_val result =
   let c = s |> parse |> eval_prog
   in run c
 
-(* Interpret an expression read from a file with optional extension .exr
+(* Interpret an expression read from a file with optional extension .exr *)
 let interpf (s:string) : exp_val result =
   let s = String.trim s (* remove leading and trailing spaces *)
   in let file_name = (* allow rec to be optional *)
-  match String.index_opt s ’.’ with None -> s^".exr" | _ -> s
-  in interp @@ read_file file_name *)
-
+    match String.index_opt s '.' with None -> s^".exr" | _ -> s
+  in interp @@ read_file file_name

@@ -111,19 +111,21 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
     sequence (List.map process_field fs) >>= fun evs ->
     return (RecordVal (addIds fs evs))
   | Proj(e,id) ->
-    eval_expr e >>=
-    fields_of_recordVal >>= fun fs ->
-      (match List.assoc_opt id fs with
-      | None -> error "Field does not exist"
-      | Some ev -> return ev)
+    eval_expr e >>= fun ev1 ->
+      fields_of_recordVal ev1 >>= fun r ->
+        (match List.assoc_opt id r with
+        | None -> error "Field doesnt exits"
+        | Some (false, value) -> return value
+        | Some (true, refval) -> int_of_refVal refval >>= fun num -> Store.deref g_store num)
   | SetField(e1,id,e2) ->
-    eval_expr e1 >>=
-    fields_of_recordVal >>= fun fs ->
-    eval_expr e2 >>= fun ev ->
-      (match List.assoc_opt id fs with
-      | None -> error "Field does not exist"
-      | Some(RefVal l) -> Store.set_ref g_store l ev >>= fun _ -> return UnitVal
-      | _ -> error "Field is not mutable")
+      eval_expr e1 >>=
+        fields_of_recordVal >>= fun r ->
+        eval_expr e2 >>= fun newValue ->
+          (match List.assoc_opt id r with
+          | None -> error "Field does not exist"
+          | Some (false, _) -> error "Field not mutable"
+          | Some (true, RefVal n) -> Store.set_ref g_store n newValue  >>= fun _ -> return UnitVal
+          | Some (true, _) -> error "Field not a reference")
   | Debug(_e) ->
     string_of_env >>= fun str_env ->
     let str_store = Store.string_of_store string_of_expval g_store 
@@ -145,10 +147,9 @@ let interp (s:string) : exp_val result =
   let c = s |> parse |> eval_prog
   in run c
 
-(* Interpret an expression read from a file with optional extension .exr
+(* Interpret an expression read from a file with optional extension .exr *)
 let interpf (s:string) : exp_val result =
   let s = String.trim s (* remove leading and trailing spaces *)
   in let file_name = (* allow rec to be optional *)
-  match String.index_opt s ’.’ with None -> s^".exr" | _ -> s
-  in interp @@ read_file file_name *)
-
+    match String.index_opt s '.' with None -> s^".exr" | _ -> s
+  in interp @@ read_file file_name
