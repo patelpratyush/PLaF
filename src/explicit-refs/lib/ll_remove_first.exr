@@ -8,7 +8,13 @@ in let add_front = proc (x) { proc (l) {
 		 l.length <= l.length+1
               end
 	      } }
-in let remove_first = (* complete *)
+in let remove_first = proc (l) {
+      let n = l.head 
+      in begin
+        l.head <= n.next;
+        l.length <= l.length - 1
+      end
+}
 in begin
      ((add_front 2) l1);
      ((add_front 3) l1);

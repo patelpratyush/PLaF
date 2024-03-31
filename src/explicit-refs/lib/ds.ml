@@ -158,3 +158,12 @@ let rec addIds fs evs =
   | [],[] -> []
   | (id,(is_mutable,_))::t1, v::t2 -> (id,(is_mutable,v)):: addIds t1 t2
   | _,_ -> failwith "error: lists have different sizes"
+
+let rec find_field : (string*(bool*exp_val)) list -> string -> (bool*exp_val) ea_result = 
+  fun l id ->
+    match l with
+    | [] -> error ("field '"^id^"' invalid!")
+    | (id', (m, v))::t ->
+      if id = id'
+      then return (m,v)
+      else find_field t id 
