@@ -102,7 +102,7 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
   | IsNumber(e) -> 
     eval_expr e >>= fun ev ->
       return @@ BoolVal (match ev with NumVal _ -> true | _ -> false)
-  | IsEqual (e1,e2) -> (* check that evaluation of e1, e2 are NumVals *) 
+  (* | IsEqual (e1,e2) -> (* check that evaluation of e1, e2 are NumVals *) 
     eval_expr e1 >>= fun ev1 ->
     eval_expr e2 >>= fun ev2 ->
     return @@ BoolVal (ev1 = ev2)
@@ -113,7 +113,7 @@ let rec eval_expr : expr -> exp_val ea_result = fun e ->
   | IsLT (e1, e2) -> (* check that evaluation of e1, e2 are NumVals *) 
     eval_expr e1 >>= fun ev1 ->
     eval_expr e2 >>= fun ev2 ->
-    return @@ BoolVal (ev1 < ev2)
+    return @@ BoolVal (ev1 < ev2) *)
   | Record(fs) ->
     sequence (List.map process_field fs) >>= fun evs ->
     return (RecordVal (addIds fs evs))
