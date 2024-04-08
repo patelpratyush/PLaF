@@ -52,11 +52,42 @@ let rec chk_expr : expr -> texpr tea_result = function
      else error
          "LetRec: Type of recursive function does not match
 declaration")
-  | Debug(_e) ->
+  | Record(fs) ->
+    let chk_field (l, (_, e)) =
+      chk_expr e >>= fun t ->
+      return (l, t)
+    in
+    let rec chk_fields = function
+      | [] -> error "empty record"
+      | h::t ->
+          chk_field h >>= fun th->
+          chk_fields t >>= fun l->
+          return (th::l)
+    in
+    chk_fields fs >>= fun l ->
+    return @@ RecordType l
+  | Proj(e,l) ->
+    chk_expr e >>= fun t ->
+    (match t with
+     | RecordType l' ->
+       (try
+          let t' = List.assoc l l' in
+          return t'
+        with Not_found -> error "proj: field not found")
+     | _ -> error "proj: not a record")
+  (* | Debug(_e) ->
     string_of_tenv >>= fun str ->
     print_endline str;
-    error "Debug: reached breakpoint"
+    error "Debug: reached breakpoint" *)
   | _ -> failwith "chk_expr: implement"    
+and
+  chk_exprs es =
+  match es with
+  | [] -> return []
+  | h::t ->
+      chk_expr h >>= fun th->
+      chk_exprs t >>= fun l->
+      return (th::l)
 and
   chk_prog (AProg(_,e)) =
   chk_expr e

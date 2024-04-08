@@ -69,6 +69,3 @@ let chk (e:string) : texpr result =
 let chkpp (e:string) : string result =
   let c = e |> parse |> chk_prog
   in run_teac (c >>= fun t -> return @@ string_of_texpr t)
-
-
-

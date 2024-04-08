@@ -1,1 +1,1 @@
-lib/checker.ml: Dst Parser_plaf ReM
+lib/checker.ml: Dst List Parser_plaf ReM
