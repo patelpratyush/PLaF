@@ -52,11 +52,104 @@ let rec chk_expr : expr -> texpr tea_result = function
      else error
          "LetRec: Type of recursive function does not match
 declaration")
+
+  (* REFS TYPE CHECKING *)
+  | NewRef(e) ->
+    chk_expr e >>= fun te ->
+    return @@ RefType(te)
+  | DeRef(e) -> 
+    chk_expr e >>= fun tes ->
+    (match tes with
+    | RefType(tr) -> return tr
+    | _ -> error "DeRef: argumient must be a reference")
+  | SetRef(e1,e2) -> 
+    chk_expr e1 >>= fun tes1 ->
+    chk_expr e2 >>= fun tes2 ->
+    (match tes1 with
+    | RefType(tr) -> 
+      if tr=tes2 
+      then return UnitType 
+      else error "SetRef: types do not match"
+    | _ -> error "setref: Expected a reference type")
+  | BeginEnd([]) -> 
+    return UnitType
+  | BeginEnd(es) -> 
+    chk_exprs es >>= fun tes ->
+    return @@ List.hd (List.rev tes)
+
+
+  (* LIST TYPE CHECKING *)
+  | EmptyList(None) ->
+    return @@ ListType(UnitType)
+  | EmptyList(Some t)->
+    return @@ ListType(t)
+  | Cons(e1, e2) -> 
+    chk_expr e1 >>= fun te1 ->
+    chk_expr e2 >>= fun te2 ->
+    (match te2 with
+    | ListType(t) -> 
+      if t=te1 
+      then return te2
+      else error "cons: type of head and tail do not match"
+    | _ -> error "Cons: second argument must be a list")
+  | IsEmpty(e) -> 
+    chk_expr e >>= fun te ->
+    (match te with
+    | ListType(_) -> return BoolType
+    | TreeType(_) -> return BoolType
+    | _ -> error "IsEmpty: argument must be a list")
+  | Hd(e) ->
+    chk_expr e >>= fun te ->
+    (match te with
+    | ListType(t) -> return t
+    | _ -> error "Hd: argument must be a list")
+  | Tl(e) -> 
+    chk_expr e >>= fun te ->
+    (match te with
+    | ListType(_) -> return te
+    | _ -> error "Tl: argument must be a list")
+
+  (* TREES TYPE CHECKING *)
+  | EmptyTree(None) -> 
+    return @@ TreeType(UnitType)
+  | EmptyTree(Some t) -> 
+    return @@ TreeType(t)
+  | Node(de, le, re) -> 
+    chk_expr de >>= fun tde ->
+    chk_expr le >>= fun tle ->
+    chk_expr re >>= fun tre ->
+    (match tle, tre with
+    | TreeType(t1), TreeType(t2) -> 
+      if t1=t2 && t1=tde
+      then return @@ TreeType(t1)
+      else error "Node: types of left, right and data do not match"
+    | _ -> error "Node: left and right must be trees")
+  | CaseT(target,emptycase,id1,id2,id3,nodecase) ->
+    chk_expr target >>= 
+    (function 
+    TreeType t -> return t 
+    | _ -> error "CaseT: target must be a tree") >>= fun t ->
+    extend_tenv id1 t >>+
+    extend_tenv id2 (TreeType t) >>+
+    extend_tenv id3 (TreeType t) >>+
+    chk_expr nodecase >>= fun node ->
+    chk_expr emptycase >>= fun empty ->
+    if empty=node
+    then return node
+    else error "CaseT: cases are not of same type"
   | Debug(_e) ->
     string_of_tenv >>= fun str ->
     print_endline str;
     error "Debug: reached breakpoint"
   | _ -> failwith "chk_expr: implement"    
+and
+  chk_exprs es =
+  match es with
+  | [] -> return []
+  | h::t ->
+    chk_expr h >>= fun th ->
+    chk_exprs t >>= fun l ->
+    return (th::l) 
 and
   chk_prog (AProg(_,e)) =
   chk_expr e
