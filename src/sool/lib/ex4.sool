@@ -4,8 +4,8 @@
 class counterc extends object { 
   field c
   method initialize() { set c=7 }
-  method add(i) { set c=c+i }
-  method bump() { send self add(1) }
+  method add_1(i) { set c=c+i }
+  method bump() { send self add_1(1) }
   method read() { c }
 }
 
@@ -28,7 +28,14 @@ class bkpcc extends resetc {
   method add(i) {
     begin
       send self backup();
-      super add(i)
+      super add_1(i)
+    end
+  }
+  method add_2(i,j) { 
+    begin
+      send self backup();
+      super add_1(i);
+      super add_1(j)
     end
   }
   method backup() { set b=c }
@@ -39,13 +46,10 @@ class bkpcc extends resetc {
 
 
 let o = new bkpcc()
-in debug(o)
-
-(* in begin
-     send o add(10); 
-     send o bump(); 
+in begin
      send o restore();
-     send o read()
-   end *)
+     send o add_2(2, 3);
+    send o read()
+   end
    
    

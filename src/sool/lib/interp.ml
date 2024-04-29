@@ -18,7 +18,8 @@ let g_store = Store.empty_store 20 (NumVal 0)
 (* Global holding class declarations *)
 let g_class_env : class_env ref = ref []
 
-
+let name_mangle n es = 
+  n^"_"^string_of_int (List.length es)
 
 (* Initialize contents of g_class_env variable  *)
 
@@ -255,6 +256,10 @@ and
     eval_expr e >>=
     list_of_listVal >>= fun l ->
     return @@ BoolVal (l=[])   
+  | IsInstanceOf(e,id) ->
+    eval_expr e >>= fun ev ->
+    obj_of_objectVal ev >>= fun (c_name,_) ->
+    is_subclass c_name id !g_class_env
   (* Debug *)
   | Debug(_e) ->
     string_of_env >>= fun str_env ->
@@ -276,7 +281,15 @@ and
   fun (AProg(cs, e)) ->
   initialize_class_env cs;   (* Step 1 *) 
   eval_expr e                (* Step 2 *)
-
+and 
+  is_subclass : string -> string -> class_env -> exp_val ea_result =
+  fun c_name_1 c_name_2 c_env ->
+    if (c_name_1 = c_name_2) 
+      then return (BoolVal true)
+    else
+      match List.assoc_opt c_name_1 c_env with
+      | None -> return (BoolVal false)
+      | Some (super_class,_,_) -> is_subclass super_class c_name_2 c_env
 
 (** [interp s] evaluates program [s] *)
 let interp (s: string) : exp_val result = 
